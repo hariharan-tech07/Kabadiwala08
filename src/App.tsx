@@ -1,0 +1,595 @@
+import React, { useState, useEffect } from 'react';
+import { User, VernacularLang, Transaction } from './types';
+import { api } from './api/client';
+import { testConnection } from './firebase';
+import { Header } from './components/Header';
+import { AuthModal } from './components/AuthModal';
+import { ScrapperDashboard, ScrapperMenuTab } from './components/scrapper/ScrapperDashboard';
+import { RecyclerDashboard, RecyclerMenuTab } from './components/recycler/RecyclerDashboard';
+import { HouseholdDashboard } from './components/household/HouseholdDashboard';
+import { HouseholdMenuTab } from './types';
+import { AdminDashboard, AdminMenuTab } from './components/admin/AdminDashboard';
+import { AdminMasterControlBar, AdminActiveMode } from './components/admin/AdminMasterControlBar';
+import { ChatDrawer } from './components/ChatDrawer';
+import { GeoMapModal } from './components/common/GeoMapModal';
+import { NotificationToastContainer } from './components/common/NotificationToast';
+import { PendingVerificationDashboard } from './components/common/PendingVerificationDashboard';
+import { translations } from './translations';
+import {
+  WifiOff, Compass, ShieldAlert, Scale, Package, UserCheck,
+  IndianRupee, Layers, BarChart3, Building2, AlertCircle,
+  Headphones, Camera, MapPin, MessageSquare, FileText, TrendingUp,
+  Sliders, ShieldCheck, FileSpreadsheet, Users, Gavel, Clock
+} from 'lucide-react';
+
+const DEFAULT_FALLBACK_SCRAPPER: User = {
+  id: 'usr-scrapper-1',
+  username: 'ramesh',
+  name: 'Ramesh Kumar (Peenya Collection Yard)',
+  role: 'scrapper',
+  location: 'Peenya Industrial Area, Bengaluru, Karnataka',
+  phone: '+91 98450 12345',
+  verified: true,
+  aadhaar_last4: '8821'
+};
+
+const DEFAULT_FALLBACK_RECYCLER: User = {
+  id: 'usr-recycler-1',
+  username: 'ecowaste',
+  name: 'Ananya Sharma (EcoWaste Recyclers India)',
+  role: 'recycler',
+  location: 'Plot 42, Electronic City Phase 2, Bengaluru',
+  phone: '+91 99001 22334',
+  verified: true,
+  cpcb_number: 'CPCB/EW/KAR/2024/7742'
+};
+
+const DEFAULT_FALLBACK_HOUSEHOLD: User = {
+  id: 'usr-household-1',
+  username: 'priya',
+  name: 'Priya Sharma (Household)',
+  role: 'household',
+  location: 'Indiranagar, Bengaluru, Karnataka',
+  phone: '+91 98450 77665',
+  verified: true
+};
+
+const DEFAULT_FALLBACK_ADMIN: User = {
+  id: 'usr-admin-1',
+  username: 'admin',
+  name: 'Dr. Ananya Sharma (CPCB Directorate)',
+  role: 'admin',
+  location: 'CPCB E-Waste Oversight Directorate, New Delhi',
+  phone: '+91 11 2230 7000',
+  verified: true,
+  cpcb_number: 'GOV-IN-CPCB-AUDITOR-01'
+};
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [lang, setLang] = useState<VernacularLang>('en');
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+  // Theme state: Dark Mode / Light Mode
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('kc_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return 'dark'; // Default to modern sovereign dark mode
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kc_theme', theme);
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  // Chat Drawer state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatTarget, setChatTarget] = useState<{ id: string; name: string; role: string; phone?: string } | null>(null);
+  const [chatLot, setChatLot] = useState<Transaction | null>(null);
+
+  // Operations Menu Bar active tabs for each role
+  const [scrapperTab, setScrapperTab] = useState<ScrapperMenuTab>('safety');
+  const [recyclerTab, setRecyclerTab] = useState<RecyclerMenuTab>('lots');
+  const [adminTab, setAdminTab] = useState<AdminMenuTab>('transactions');
+  const [householdTab, setHouseholdTab] = useState<HouseholdMenuTab>('pickup');
+
+  // Admin Master Dual-Control State (Admin can control scrapper and recycler)
+  const [adminActiveMode, setAdminActiveMode] = useState<AdminActiveMode>('admin_oversight');
+  const [controlledScrapper, setControlledScrapper] = useState<User | null>(DEFAULT_FALLBACK_SCRAPPER);
+  const [controlledRecycler, setControlledRecycler] = useState<User | null>(DEFAULT_FALLBACK_RECYCLER);
+  const [availableScrappers, setAvailableScrappers] = useState<User[]>([DEFAULT_FALLBACK_SCRAPPER]);
+  const [availableRecyclers, setAvailableRecyclers] = useState<User[]>([DEFAULT_FALLBACK_RECYCLER]);
+
+  // Load available entities for Admin Master Control
+  useEffect(() => {
+    if (currentUser?.role === 'admin') {
+      api.getUsers().then((allUsers) => {
+        const scrappers = allUsers.filter((u) => u.role === 'scrapper');
+        const recyclers = allUsers.filter((u) => u.role === 'recycler');
+        if (scrappers.length > 0) {
+          setAvailableScrappers(scrappers);
+          setControlledScrapper(scrappers[0]);
+        }
+        if (recyclers.length > 0) {
+          setAvailableRecyclers(recyclers);
+          setControlledRecycler(recyclers[0]);
+        }
+      }).catch(() => {
+        // Use defaults
+      });
+    }
+  }, [currentUser?.role]);
+
+  const activeTab = currentUser?.role === 'scrapper'
+    ? scrapperTab
+    : currentUser?.role === 'household'
+    ? householdTab
+    : currentUser?.role === 'recycler'
+    ? recyclerTab
+    : adminActiveMode === 'control_scrapper'
+    ? scrapperTab
+    : adminActiveMode === 'control_recycler'
+    ? recyclerTab
+    : adminTab;
+
+  const handleSelectTab = (tabId: string) => {
+    if (currentUser?.role === 'scrapper') {
+      setScrapperTab(tabId as ScrapperMenuTab);
+    } else if (currentUser?.role === 'household') {
+      setHouseholdTab(tabId as HouseholdMenuTab);
+    } else if (currentUser?.role === 'recycler') {
+      setRecyclerTab(tabId as RecyclerMenuTab);
+    } else if (currentUser?.role === 'admin') {
+      if (adminActiveMode === 'control_scrapper') {
+        setScrapperTab(tabId as ScrapperMenuTab);
+      } else if (adminActiveMode === 'control_recycler') {
+        setRecyclerTab(tabId as RecyclerMenuTab);
+      } else {
+        setAdminTab(tabId as AdminMenuTab);
+      }
+    }
+  };
+
+  // Network offline detector
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Check existing session
+    const sessionUser = api.getCurrentSession();
+    if (sessionUser) {
+      setCurrentUser(sessionUser);
+    }
+
+    // Load saved lang
+    const savedLang = localStorage.getItem('kc_vernacular_lang') as VernacularLang;
+    if (savedLang) setLang(savedLang);
+
+    // Test cloud Firestore connection on startup
+    testConnection().then((connected) => {
+      console.log(`[Firestore] Database connection status: ${connected ? 'ONLINE' : 'CHECK_CONFIG'}`);
+    }).catch((err) => {
+      console.warn('[Firestore] Startup connection check:', err);
+    });
+
+    // Online listeners
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    setCurrentUser(null);
+  };
+
+  const handleLangChange = (newLang: VernacularLang) => {
+    setLang(newLang);
+    localStorage.setItem('kc_vernacular_lang', newLang);
+  };
+
+  const handleSwitchApp = (targetRole: 'household' | 'scrapper' | 'recycler' | 'admin') => {
+    if (targetRole === 'household') {
+      setCurrentUser(DEFAULT_FALLBACK_HOUSEHOLD);
+    } else if (targetRole === 'scrapper') {
+      setCurrentUser(DEFAULT_FALLBACK_SCRAPPER);
+    } else if (targetRole === 'recycler') {
+      setCurrentUser(DEFAULT_FALLBACK_RECYCLER);
+    } else if (targetRole === 'admin') {
+      setCurrentUser(DEFAULT_FALLBACK_ADMIN);
+    }
+  };
+
+  const handleOpenChat = (
+    target: { id: string; name: string; role: string; phone?: string },
+    lot?: Transaction
+  ) => {
+    setChatTarget(target);
+    setChatLot(lot || null);
+    setChatOpen(true);
+  };
+
+  // If not logged in, render Auth Modal
+  if (!currentUser) {
+    return (
+      <AuthModal
+        onLoginSuccess={handleLoginSuccess}
+        lang={lang}
+        onLangChange={handleLangChange}
+      />
+    );
+  }
+
+  // If registered scrapper or recycler is pending first-time admin verification, show waiting dashboard
+  const isPendingVerification =
+    (currentUser.role === 'scrapper' || currentUser.role === 'recycler') &&
+    (!currentUser.verified || currentUser.status === 'Pending Verification' || currentUser.status === 'Pending Admin Verification' || (currentUser as any).approval_status === 'pending');
+
+  if (isPendingVerification) {
+    return (
+      <PendingVerificationDashboard
+        user={currentUser}
+        onUserApproved={(approvedUser) => {
+          setCurrentUser(approvedUser);
+          localStorage.setItem('kc_session_user', JSON.stringify(approvedUser));
+        }}
+        onLogout={handleLogout}
+        lang={lang}
+      />
+    );
+  }
+
+  const OFFLINE_NOTICES: Record<VernacularLang, string> = {
+    en: 'Offline Simulation Active: Transactions and rates cached in local storage. Auto-sync will resume once connected.',
+    hi: 'ऑफ़लाइन सिमुलेशन सक्रिय: लेन-देन और दरें स्थानीय स्टोरेज में सुरक्षित हैं। कनेक्ट होने पर स्वतः सिंक होगा।',
+    mr: 'ऑफलाइन मोड सक्रिय: व्यवहार आणि दर स्थानिक संचयनात कॅश केले आहेत. नेटवर्क सुरू झाल्यावर आपोआप सिंक होईल.',
+    ta: 'ஆஃப்லைன் முறை செயலில் உள்ளது: பரிவர்த்தனைகள் உள்ளூர் சேமிப்பகத்தில் சேமிக்கப்பட்டுள்ளன. இணைப்பு கிடைத்ததும் ஒத்திசைக்கப்படும்.'
+  };
+
+  const FOOTER_TEXTS: Record<VernacularLang, { brand: string; cpcb: string; rules: string; rbac: string }> = {
+    en: {
+      brand: 'Kabadiwala Connect — National E-Waste Formalization Network',
+      cpcb: 'CPCB Circular Traceability Protocol',
+      rules: 'E-Waste (Management) Rules 2022',
+      rbac: 'Role-Based Access Control (RBAC) Verified'
+    },
+    hi: {
+      brand: 'कबाड़ीवाला कनेक्ट — राष्ट्रीय ई-अपशिष्ट औपचारिकीकरण नेटवर्क',
+      cpcb: 'CPCB चक्रीय ट्रैसेबिलिटी प्रोटोकॉल',
+      rules: 'ई-अपशिष्ट (प्रबंधन) नियम 2022',
+      rbac: 'भूमिका-आधारित अभिगम नियंत्रण (RBAC) सत्यापित'
+    },
+    mr: {
+      brand: 'कबाडीवाला कनेक्ट — राष्ट्रीय ई-कचरा औपचारिकीकरण नेटवर्क',
+      cpcb: 'CPCB चक्रीय ट्रॅसेबिलिटी प्रोटोकॉल',
+      rules: 'ई-कचरा (व्यवस्थापन) नियम २०२२',
+      rbac: 'भूमिका-आधारित प्रवेश नियंत्रण (RBAC) सत्यापित'
+    },
+    ta: {
+      brand: 'கபாடிவாலா கனெக்ட் — தேசிய மின்-கழிவு முறைப்படுத்தல் வலைப்பின்னல்',
+      cpcb: 'CPCB சுழற்சி முறை தடமறிதல் நெறிமுறை',
+      rules: 'மின்-கழிவு (மேலாண்மை) விதிகள் 2022',
+      rbac: 'பங்கு சார்ந்த அணுகல் கட்டுப்பாடு (RBAC) சரிபார்க்கப்பட்டது'
+    }
+  };
+
+  const foot = FOOTER_TEXTS[lang] || FOOTER_TEXTS.en;
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#090D16] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-amber-600 selection:text-white relative transition-colors duration-200">
+      {/* Precision ambient background field */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-15%,rgba(217,119,6,0.06),rgba(0,0,0,0))] pointer-events-none z-0 dark:block hidden" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_85%_100%,rgba(5,150,105,0.05),rgba(0,0,0,0))] pointer-events-none z-0 dark:block hidden" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-15%,rgba(217,119,6,0.02),rgba(0,0,0,0))] pointer-events-none z-0 dark:hidden block" />
+
+      {/* Local Notification System: Top of Screen Toast Banner */}
+      <NotificationToastContainer
+        currentUser={currentUser}
+        lang={lang}
+        onOpenChatWithUser={(target) => {
+          handleOpenChat(target);
+        }}
+      />
+
+      {/* Offline sync banner if disconnected */}
+      {!isOnline && (
+        <div className="bg-amber-500 text-slate-950 px-4 py-1.5 text-xs font-bold flex items-center justify-center gap-2 shadow-xs">
+          <WifiOff className="w-4 h-4" />
+          <span>{OFFLINE_NOTICES[lang] || OFFLINE_NOTICES.en}</span>
+        </div>
+      )}
+
+      {/* Global Header with Integrated Menubar in Nav Bar */}
+      <Header
+        user={currentUser}
+        onLogout={handleLogout}
+        lang={lang}
+        onLangChange={handleLangChange}
+        onOpenMap={() => setIsMapModalOpen(true)}
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
+        onSwitchApp={currentUser.role === 'admin' ? handleSwitchApp : undefined}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+      />
+
+      {/* Main Content View — Strictly Confined to Authorized Role */}
+      {(() => {
+        const isScrapperApp =
+          currentUser.role === 'scrapper' ||
+          (currentUser.role === 'admin' && adminActiveMode === 'control_scrapper');
+
+        return (
+          <main className={`flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5 ${isScrapperApp ? 'pb-20 md:pb-6' : 'pb-8'}`}>
+            {currentUser.role === 'scrapper' && (
+              <ScrapperDashboard
+                user={currentUser}
+                lang={lang}
+                onOpenChat={handleOpenChat}
+                activeMenuTab={scrapperTab}
+                onSelectMenuTab={setScrapperTab}
+              />
+            )}
+
+            {currentUser.role === 'household' && (
+              <HouseholdDashboard
+                user={currentUser}
+                lang={lang}
+                onOpenChat={handleOpenChat}
+                activeMenuTab={householdTab}
+                onSelectMenuTab={setHouseholdTab}
+              />
+            )}
+
+            {currentUser.role === 'recycler' && (
+          <RecyclerDashboard
+            user={currentUser}
+            lang={lang}
+            onOpenChat={handleOpenChat}
+            activeMenuTab={recyclerTab}
+            onSelectMenuTab={setRecyclerTab}
+          />
+        )}
+
+        {currentUser.role === 'admin' && (
+          <div className="space-y-6">
+            {/* CPCB Master Dual Control Bar (Admin can switch between central oversight, scrapper control, and recycler control) */}
+            <AdminMasterControlBar
+              adminUser={currentUser}
+              activeMode={adminActiveMode}
+              onSelectMode={setAdminActiveMode}
+              controlledScrapper={controlledScrapper}
+              onSelectScrapper={setControlledScrapper}
+              availableScrappers={availableScrappers}
+              controlledRecycler={controlledRecycler}
+              onSelectRecycler={setControlledRecycler}
+              availableRecyclers={availableRecyclers}
+              lang={lang}
+            />
+
+            {/* Mode 1: Central Regulatory Authority Oversight */}
+            {adminActiveMode === 'admin_oversight' && (
+              <AdminDashboard
+                currentUser={currentUser}
+                lang={lang}
+                activeMenuTab={adminTab}
+                onSelectMenuTab={setAdminTab}
+              />
+            )}
+
+            {/* Mode 2: Master Control over Scrapper operations */}
+            {adminActiveMode === 'control_scrapper' && controlledScrapper && (
+              <ScrapperDashboard
+                user={controlledScrapper}
+                lang={lang}
+                onOpenChat={handleOpenChat}
+                activeMenuTab={scrapperTab}
+                onSelectMenuTab={setScrapperTab}
+              />
+            )}
+
+            {/* Mode 3: Master Control over Recycler facility operations */}
+            {adminActiveMode === 'control_recycler' && controlledRecycler && (
+              <RecyclerDashboard
+                user={controlledRecycler}
+                lang={lang}
+                onOpenChat={handleOpenChat}
+                activeMenuTab={recyclerTab}
+                onSelectMenuTab={setRecyclerTab}
+              />
+            )}
+          </div>
+        )}
+      </main>
+    );
+  })()}
+
+      {/* Connected Chat Console Drawer */}
+      {chatTarget && (
+        <ChatDrawer
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          currentUser={currentUser}
+          targetUser={chatTarget}
+          lot={chatLot}
+          lang={lang}
+          onSelectTarget={handleOpenChat}
+        />
+      )}
+
+      {/* Cross-Role Geolocation Radar Modal */}
+      <GeoMapModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        currentUser={currentUser}
+        lang={lang}
+        onOpenChat={handleOpenChat}
+        onSelectRecycler={(rec) => {
+          if (currentUser.role === 'household') return;
+          setIsMapModalOpen(false);
+          setChatTarget({
+            id: rec.user_id,
+            name: rec.facility_name,
+            role: 'recycler',
+            phone: rec.contact_phone
+          });
+          setChatOpen(true);
+        }}
+        onSelectScrapper={(scrapper) => {
+          setIsMapModalOpen(false);
+          setChatTarget({
+            id: scrapper.id,
+            name: scrapper.name,
+            role: 'scrapper',
+            phone: scrapper.phone
+          });
+          setChatOpen(true);
+        }}
+      />
+
+      {/* Android Mobile Navigation Bar (Exclusively for Scrapper Android App) */}
+      {(currentUser.role === 'scrapper' || (currentUser.role === 'admin' && adminActiveMode === 'control_scrapper')) && (
+        <nav
+          aria-label="Android Mobile Navigation"
+          className="md:hidden fixed bottom-0 inset-x-0 bg-white/95 dark:bg-[#0A101D]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-40 shadow-2xl px-1 py-1 flex items-center justify-around overflow-x-auto no-scrollbar scroll-smooth min-h-[56px] transition-colors duration-200"
+        >
+          {(() => {
+            const t = translations[lang] || translations.en;
+            interface BottomNavOption {
+              id: string;
+              label: string;
+              icon: React.ComponentType<{ className?: string }>;
+              accentClass: string;
+              bgClass: string;
+            }
+
+            const options: BottomNavOption[] = [
+              {
+                id: 'safety',
+                label: t.modSafety?.label || 'Safety',
+                icon: Headphones,
+                accentClass: 'text-amber-600 dark:text-amber-400',
+                bgClass: 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 font-extrabold shadow-2xs'
+              },
+              {
+                id: 'capture',
+                label: t.modCapture?.label || 'AI Scale',
+                icon: Camera,
+                accentClass: 'text-emerald-600 dark:text-emerald-400',
+                bgClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 font-extrabold shadow-2xs'
+              },
+              {
+                id: 'map',
+                label: t.modMap?.label || 'Radar',
+                icon: MapPin,
+                accentClass: 'text-blue-600 dark:text-blue-400',
+                bgClass: 'bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700 font-extrabold shadow-2xs'
+              },
+              {
+                id: 'chat',
+                label: t.modChat?.label || 'Chat',
+                icon: MessageSquare,
+                accentClass: 'text-emerald-600 dark:text-emerald-400',
+                bgClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 font-extrabold shadow-2xs'
+              },
+              {
+                id: 'lots',
+                label: t.modLots?.label || 'My Lots',
+                icon: FileText,
+                accentClass: 'text-emerald-600 dark:text-emerald-400',
+                bgClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 font-extrabold shadow-2xs'
+              },
+              {
+                id: 'rates',
+                label: t.modRates?.label || 'Rates',
+                icon: IndianRupee,
+                accentClass: 'text-emerald-600 dark:text-emerald-400',
+                bgClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 font-extrabold shadow-2xs'
+              },
+              {
+                id: 'complaints',
+                label: t.modScrapComplaints?.label || 'Grievance',
+                icon: ShieldAlert,
+                accentClass: 'text-rose-600 dark:text-rose-400',
+                bgClass: 'bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-700 font-extrabold shadow-2xs'
+              }
+            ];
+
+            return options.map((opt) => {
+              const isActive = activeTab === opt.id;
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  id={`mobile-bottom-nav-${opt.id}`}
+                  onClick={() => handleSelectTab(opt.id)}
+                  className={`flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl transition-all cursor-pointer min-w-[44px] max-w-[58px] shrink-0 border active:scale-95 ${
+                    isActive
+                      ? opt.bgClass
+                      : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/60 font-medium'
+                  }`}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={opt.label}
+                  title={opt.label}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <Icon className={`w-5 h-5 transition-transform ${isActive ? `${opt.accentClass} scale-110` : 'text-slate-400 dark:text-slate-500'}`} />
+                    {isActive && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    )}
+                  </div>
+                </button>
+              );
+            });
+          })()}
+        </nav>
+      )}
+
+      {/* Footer */}
+      <footer className={`bg-white/80 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-800/80 py-6 text-center text-xs text-slate-500 dark:text-slate-400 backdrop-blur-md transition-colors duration-200 ${
+        (currentUser.role === 'scrapper' || (currentUser.role === 'admin' && adminActiveMode === 'control_scrapper'))
+          ? 'pb-24 md:pb-6'
+          : 'pb-6'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+            <span className="font-semibold text-slate-800 dark:text-slate-300">{foot.brand}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+              {currentUser.role === 'scrapper' ? '📱 Android Mobile App' : currentUser.role === 'recycler' ? '💻 Web Portal' : '🌐 Regulatory Web Desk'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+            <span>{foot.cpcb}</span>
+            <span>•</span>
+            <span>{foot.rules}</span>
+            <span>•</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">{foot.rbac}</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
