@@ -8,6 +8,7 @@ import { ComplaintModal } from '../common/ComplaintModal';
 import { PaymentSettlementModal } from '../common/PaymentSettlementModal';
 import { PaymentBadge } from '../common/PaymentBadge';
 import { TransactionPaymentHistoryView } from '../common/TransactionPaymentHistoryView';
+import { UserProfileModal } from '../common/UserProfileModal';
 import { notifyUser } from '../common/NotificationToast';
 import { generateRecyclerEprCertificate } from '../../utils/pdfGenerator';
 import {
@@ -25,7 +26,7 @@ import {
   Volume2, VolumeX, Globe
 } from 'lucide-react';
 
-export type RecyclerMenuTab = 'lots' | 'rates' | 'weighment' | 'map' | 'chat' | 'compliance' | 'payments';
+export type RecyclerMenuTab = 'lots' | 'rates' | 'weighment' | 'map' | 'chat' | 'compliance' | 'payments' | 'profile';
 
 interface RecyclerDashboardProps {
   user: User;
@@ -447,6 +448,15 @@ export const RecyclerDashboard: React.FC<RecyclerDashboardProps> = ({
       icon: IndianRupee,
       badge: `${transactions.filter(t => t.payment_status === 'PAID' || t.status === 'PAID' || t.status === 'COMPLETED').length} Paid`,
       subtitle: 'UPI, Cash on Pickup/Delivery & Offline Settlement History'
+    },
+    {
+      id: 'profile',
+      num: '8',
+      shortTitle: 'Profile',
+      label: 'Facility Profile & Credentials',
+      icon: Users,
+      badge: 'CPCB',
+      subtitle: 'Facility credentials, CPCB Auth & rep details'
     }
   ];
 
@@ -1378,6 +1388,15 @@ export const RecyclerDashboard: React.FC<RecyclerDashboardProps> = ({
               onOpenPaymentModal={(tx) => setSettlingPaymentLot(tx)}
             />
           </div>
+        )}
+
+        {/* MODULE 8: FACILITY PROFILE & IDENTITY DETAILS */}
+        {activeMenuTab === 'profile' && (
+          <UserProfileModal
+            isEmbedded={true}
+            user={user}
+            lang={lang}
+          />
         )}
       </div>
 

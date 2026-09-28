@@ -24,7 +24,7 @@ export interface User {
   sales_frequency?: 'regular' | 'periodical';
 }
 
-export type HouseholdMenuTab = 'pickup' | 'scrappers' | 'chat' | 'calculator' | 'tracking' | 'impact';
+export type HouseholdMenuTab = 'pickup' | 'scrappers' | 'chat' | 'calculator' | 'tracking' | 'impact' | 'profile';
 
 export interface HouseholdPickupRequest {
   id: string;

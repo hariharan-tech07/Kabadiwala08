@@ -4,7 +4,7 @@ import { translations } from '../../translations';
 import {
   Headphones, Camera, MapPin, MessageSquare, FileText,
   TrendingUp, ShieldAlert, Sliders, Scale, ShieldCheck,
-  FileSpreadsheet, Users, Gavel, Clock, Sparkles, Layers, Home, Truck
+  FileSpreadsheet, Users, Gavel, Clock, Sparkles, Layers, Home, Truck, User as UserIcon
 } from 'lucide-react';
 
 export interface DashboardNavModule {
@@ -134,6 +134,15 @@ export const DashboardNavigationBar: React.FC<DashboardNavigationBarProps> = ({
       icon: ShieldAlert,
       badge: badgeCounts?.complaints ? `${badgeCounts.complaints}` : undefined,
       desc: t.modScrapComplaints?.desc || 'Tribunal dispute filing'
+    },
+    {
+      id: 'profile',
+      num: '9',
+      shortTitle: 'Profile',
+      label: 'User Profile & Identity Details',
+      icon: UserIcon,
+      badge: 'KYC',
+      desc: 'Collector Aadhaar, contact, hub address & credentials'
     }
   ];
 
@@ -191,6 +200,15 @@ export const DashboardNavigationBar: React.FC<DashboardNavigationBarProps> = ({
       icon: ShieldCheck,
       badge: 'CPCB EPR',
       desc: t.modRecCompliance?.desc || 'Audit manifests & certificates'
+    },
+    {
+      id: 'profile',
+      num: '7',
+      shortTitle: 'Profile',
+      label: 'Facility Profile & Credentials',
+      icon: UserIcon,
+      badge: 'CPCB',
+      desc: 'Facility credentials, CPCB Auth & rep details'
     }
   ];
 
@@ -248,6 +266,15 @@ export const DashboardNavigationBar: React.FC<DashboardNavigationBarProps> = ({
       icon: Clock,
       badge: 'Audit',
       desc: t.modAdmAudit?.desc || 'Immutable logs & PostgreSQL DDL'
+    },
+    {
+      id: 'profile',
+      num: '7',
+      shortTitle: 'Profile',
+      label: 'Directorate Officer Profile',
+      icon: UserIcon,
+      badge: 'Officer',
+      desc: 'CPCB credentials, authorization docket & contact'
     }
   ];
 

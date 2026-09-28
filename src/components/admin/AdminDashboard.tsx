@@ -6,6 +6,7 @@ import { OpenStreetMap } from '../common/OpenStreetMap';
 import { DigitalReceiptModal } from '../common/DigitalReceiptModal';
 import { PaymentBadge } from '../common/PaymentBadge';
 import { TransactionPaymentHistoryView } from '../common/TransactionPaymentHistoryView';
+import { UserProfileModal } from '../common/UserProfileModal';
 import { generateAdminComplianceReport, generateLegalNoticePdf } from '../../utils/pdfGenerator';
 import {
   ShieldAlert, Users, FileSpreadsheet, TrendingUp, Database,
@@ -17,7 +18,7 @@ import {
   KeyRound, Eye, EyeOff, Lock, Copy, X, Sparkles
 } from 'lucide-react';
 
-export type AdminMenuTab = 'transactions' | 'users' | 'rates' | 'complaints' | 'legal' | 'audit' | 'sql' | 'payments';
+export type AdminMenuTab = 'transactions' | 'users' | 'rates' | 'complaints' | 'legal' | 'audit' | 'sql' | 'payments' | 'profile';
 
 interface AdminDashboardProps {
   currentUser: User;
@@ -530,6 +531,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       icon: IndianRupee,
       badge: `₹${totalPayoutInr.toLocaleString('en-IN')}`,
       subtitle: 'Differentiated payment mode audit (UPI, Cash, Offline) and reconciliation ledger'
+    },
+    {
+      id: 'profile',
+      num: '9',
+      shortTitle: 'Profile',
+      label: 'Directorate Officer Profile',
+      icon: Users,
+      badge: 'Officer',
+      subtitle: 'CPCB credentials, authorization docket & contact'
     }
   ];
 
@@ -2004,6 +2014,15 @@ CREATE TABLE users (
               onSelectReceipt={(tx) => setSelectedReceiptLot(tx)}
             />
           </div>
+        )}
+
+        {/* MODULE 9: DIRECTORATE OFFICER PROFILE & IDENTITY DETAILS */}
+        {activeMenuTab === 'profile' && (
+          <UserProfileModal
+            isEmbedded={true}
+            user={currentUser}
+            lang={lang}
+          />
         )}
       </div>
 

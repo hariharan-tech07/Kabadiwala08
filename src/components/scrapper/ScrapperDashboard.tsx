@@ -21,6 +21,7 @@ import {
   Check, X, Smartphone, Database, Wifi, Home, Truck
 } from 'lucide-react';
 import { AndroidAppModal } from '../common/AndroidAppModal';
+import { UserProfileModal } from '../common/UserProfileModal';
 import { OfflinePhotoVaultModal } from './OfflinePhotoVaultModal';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { vernacularAudio } from '../../utils/audioPlayer';
@@ -43,7 +44,8 @@ export type ScrapperMenuTab =
   | 'lots'
   | 'household_lots'
   | 'rates'
-  | 'complaints';
+  | 'complaints'
+  | 'profile';
 
 interface ScrapperDashboardProps {
   user: User;
@@ -1058,6 +1060,14 @@ export const ScrapperDashboard: React.FC<ScrapperDashboardProps> = ({
               setChatTargetRecycler({ id: rec.id, name: rec.name, role: rec.role });
               setActiveMenuTab("chat");
             }}
+          />
+        )}
+
+        {activeMenuTab === "profile" && (
+          <UserProfileModal
+            isEmbedded={true}
+            user={user}
+            lang={lang}
           />
         )}
       </div>

@@ -6,10 +6,11 @@ import {
   IndianRupee, ShieldCheck, CheckCircle2, MapPin, Sparkles, Plus,
   Download, FileText, AlertCircle, ArrowRight, Search, Filter,
   Check, ExternalLink, RefreshCw, X, ChevronRight, HelpCircle,
-  Award, Shield, FileCheck, Info, Send
+  Award, Shield, FileCheck, Info, Send, User as UserIcon
 } from 'lucide-react';
 import { DigitalReceiptModal } from '../common/DigitalReceiptModal';
 import { OpenStreetMap } from '../common/OpenStreetMap';
+import { UserProfileModal } from '../common/UserProfileModal';
 
 interface HouseholdDashboardProps {
   user: User;
@@ -523,7 +524,8 @@ export const HouseholdDashboard: React.FC<HouseholdDashboardProps> = ({
           { id: 'chat', label: t.activeTabChat, icon: MessageSquare },
           { id: 'calculator', label: t.activeTabCalculator, icon: Scale },
           { id: 'tracking', label: t.activeTabTracking, icon: Clock },
-          { id: 'impact', label: t.activeTabImpact, icon: Sparkles }
+          { id: 'impact', label: t.activeTabImpact, icon: Sparkles },
+          { id: 'profile', label: 'Profile & Details', icon: UserIcon }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -1419,6 +1421,15 @@ export const HouseholdDashboard: React.FC<HouseholdDashboardProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB 7: CITIZEN PROFILE & IDENTITY DETAILS */}
+      {currentTab === 'profile' && (
+        <UserProfileModal
+          isEmbedded={true}
+          user={user}
+          lang={lang}
+        />
       )}
 
       {/* MODAL: BOOK NEW DOORSTEP SCRAP PICKUP */}

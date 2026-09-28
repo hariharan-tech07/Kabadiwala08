@@ -19,6 +19,7 @@ import {
   Sun, Moon
 } from 'lucide-react';
 import { PWAInstallButton } from './common/PWAInstallButton';
+import { UserProfileModal } from './common/UserProfileModal';
 
 export interface NavModuleItem {
   id: string;
@@ -64,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isModulesMenuOpen, setIsModulesMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isCornerMenuOpen, setIsCornerMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [audioFeedbackOn, setAudioFeedbackOn] = useState(() => isAudioFeedbackEnabled());
 
   useEffect(() => {
@@ -157,6 +159,15 @@ export const Header: React.FC<HeaderProps> = ({
           icon: ShieldAlert,
           badge: 'Grievance',
           subtitle: 'Dispute filing, underweighting claims & CPCB docket'
+        },
+        {
+          id: 'profile',
+          num: '9',
+          shortTitle: 'Profile',
+          label: 'User Profile & Identity Details',
+          icon: UserIcon,
+          badge: 'KYC',
+          subtitle: 'Collector Aadhaar, contact, hub address & credentials'
         }
       ];
     }
@@ -216,6 +227,15 @@ export const Header: React.FC<HeaderProps> = ({
           icon: ShieldCheck,
           badge: 'CPCB EPR',
           subtitle: t.modRecCompliance?.desc || 'Digital audit manifests'
+        },
+        {
+          id: 'profile',
+          num: '7',
+          shortTitle: 'Profile',
+          label: 'User Profile & Facility Registry',
+          icon: UserIcon,
+          badge: 'CPCB',
+          subtitle: 'Facility credentials, CPCB Auth & rep details'
         }
       ];
     }
@@ -257,6 +277,15 @@ export const Header: React.FC<HeaderProps> = ({
           icon: Scale,
           badge: 'Fair Rates',
           subtitle: 'Official CPCB benchmark rates'
+        },
+        {
+          id: 'profile',
+          num: '5',
+          shortTitle: 'Profile',
+          label: 'Citizen Profile & Household Details',
+          icon: UserIcon,
+          badge: 'Citizen',
+          subtitle: 'Doorstep address, contact mobile & green score'
         }
       ];
     }
@@ -307,6 +336,15 @@ export const Header: React.FC<HeaderProps> = ({
         icon: Clock,
         badge: 'Audit',
         subtitle: t.modAdmAudit?.desc || 'System logs & security records'
+      },
+      {
+        id: 'profile',
+        num: '6',
+        shortTitle: 'Profile',
+        label: 'Directorate Officer Profile',
+        icon: UserIcon,
+        badge: 'Officer',
+        subtitle: 'CPCB credentials, authorization docket & contact'
       }
     ];
   };
@@ -317,6 +355,9 @@ export const Header: React.FC<HeaderProps> = ({
   const currentMod = navModules[currentIndex] || navModules[0];
 
   const handleTabClick = (tabId: string) => {
+    if (tabId === 'profile') {
+      setIsProfileModalOpen(true);
+    }
     onSelectTab?.(tabId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -515,112 +556,17 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-white/95 dark:bg-[#0A101D]/95 text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800/80 sticky top-0 z-40 backdrop-blur-md shadow-xs dark:shadow-lg dark:shadow-black/40 w-full transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 w-full">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-4 w-full min-w-0">
-          {/* Logo & Brand - Icon Alone as requested */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Logo & Brand - ONLY THE ICON */}
+          <div className="flex items-center shrink-0">
             <div 
-              className={`w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-xs shrink-0 ${
-                user.role === 'scrapper' ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950' : user.role === 'household' ? 'bg-blue-500 text-white' : user.role === 'recycler' ? 'bg-cyan-500 text-slate-950' : 'bg-amber-500 text-slate-950'
+              className={`w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-sm shrink-0 ${
+                user.role === 'scrapper' ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950' : user.role === 'household' ? 'bg-blue-600 text-white' : user.role === 'recycler' ? 'bg-cyan-500 text-slate-950' : 'bg-amber-500 text-slate-950'
               }`}
-              title="KC - Kabadiwala Connect"
+              title="Kabadiwala Connect"
             >
               KC
             </div>
-            {user.role === 'scrapper' ? (
-              <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase rounded-full border border-emerald-500/40">
-                <Smartphone className="w-2.5 h-2.5" />
-                <span>Android App</span>
-              </span>
-            ) : user.role === 'household' ? (
-              <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[10px] font-black uppercase rounded-full border border-blue-500/40">
-                <Home className="w-2.5 h-2.5" />
-                <span>Household Portal</span>
-              </span>
-            ) : user.role === 'recycler' ? (
-              <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 text-[10px] font-black uppercase rounded-full border border-cyan-500/40">
-                <Globe className="w-2.5 h-2.5" />
-                <span>Web Portal</span>
-              </span>
-            ) : (
-              <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] font-black uppercase rounded-full border border-amber-500/40">
-                <Building2 className="w-2.5 h-2.5" />
-                <span>Web Desk</span>
-              </span>
-            )}
-            <p className="text-xs text-slate-500 dark:text-slate-400 hidden xl:block">
-              {user.role === 'scrapper'
-                ? 'Kabadiwala Collector Android App • Camera AI Scale & Offline Sync'
-                : user.role === 'household'
-                ? 'Household Citizen Portal • Doorstep Scrap Pickup & Neighborhood Kabadiwala Connect'
-                : user.role === 'recycler'
-                ? 'Authorized Recycler Web Portal • Desktop Cloud Workspace'
-                : 'CPCB Central Regulatory Authority Web Portal • Statutory Directorate'}
-            </p>
           </div>
-
-          {/* 3-APP SEPARATE DASHBOARDS SWITCHER (Strictly Hidden for Scrappers; Only for Admin) */}
-          {onSwitchApp && user.role !== 'scrapper' && user.role === 'admin' && (
-            <div className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-900/90 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shrink-0">
-              <button
-                type="button"
-                id="app-switch-household-btn"
-                onClick={() => onSwitchApp('household')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  user.role === 'household'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                }`}
-                title="Household Citizen App: Doorstep Pickups & Scrap Rates"
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>Household App</span>
-              </button>
-
-              <button
-                type="button"
-                id="app-switch-scrapper-btn"
-                onClick={() => onSwitchApp('scrapper')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  user.role === 'scrapper'
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-xs'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                }`}
-                title="Kabadiwala Collector Android App: Camera AI Scale & Offline Sync"
-              >
-                <Truck className="w-3.5 h-3.5" />
-                <span>Scrapper App</span>
-              </button>
-
-              <button
-                type="button"
-                id="app-switch-recycler-btn"
-                onClick={() => onSwitchApp('recycler')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  user.role === 'recycler'
-                    ? 'bg-cyan-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                }`}
-                title="Authorized Recycler Web Desk: B2B Procurement & CPCB Traceability"
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Recycler Desk</span>
-              </button>
-
-              <button
-                type="button"
-                id="app-switch-admin-btn"
-                onClick={() => onSwitchApp('admin')}
-                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  user.role === 'admin'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                }`}
-                title="CPCB Central Regulatory Directorate"
-              >
-                <ShieldAlert className="w-3.5 h-3.5" />
-                <span>CPCB</span>
-              </button>
-            </div>
-          )}
 
           {/* COMPACT OPERATIONS MENU BAR DROPDOWN IN HEADER — PREVENTS OVERFLOW */}
           {navModules.length > 0 && (
@@ -971,22 +917,29 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Platform Role Indicator / Android App Install Action (Visible on sm+ screens; on mobile it is conveniently accessible inside the Corner Menu) */}
-            {user.role === 'scrapper' ? (
+            {/* Platform Role Indicator / Android App Install Action for Scrapper */}
+            {user.role === 'scrapper' && (
               <div className="hidden sm:block">
                 <PWAInstallButton />
               </div>
-            ) : user.role === 'recycler' ? (
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs" title="Enterprise Cloud Web Application">
-                <Globe className="w-3.5 h-3.5 text-blue-600" />
-                <span>Web Portal</span>
-              </span>
-            ) : (
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs" title="Government Regulatory Web Application">
-                <Building2 className="w-3.5 h-3.5 text-amber-600" />
-                <span>Web Desk</span>
-              </span>
             )}
+
+            {/* DEDICATED USER PROFILE BUTTON IN THE MENU BAR */}
+            <button
+              type="button"
+              id="header-profile-btn"
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-2xs min-h-[34px] sm:min-h-[38px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 active:scale-95"
+              title="View User Profile Details"
+            >
+              <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0 border border-emerald-500/30">
+                <UserIcon className="w-3 h-3" />
+              </div>
+              <span className="font-extrabold text-xs">Profile</span>
+              <span className="hidden xl:inline text-[11px] text-slate-400 font-normal truncate max-w-[85px]">
+                ({user.name.split(' ')[0]})
+              </span>
+            </button>
 
             <div className="hidden lg:block">{getRoleBadge()}</div>
 
@@ -1037,7 +990,14 @@ export const Header: React.FC<HeaderProps> = ({
                   className="fixed inset-x-2 top-14 sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-88 max-h-[85vh] overflow-y-auto rounded-2xl bg-white border-2 border-slate-200 shadow-2xl p-3 z-50 text-slate-900 animate-in fade-in zoom-in-95 duration-150"
                 >
                   {/* Top Profile / Role Strip */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div 
+                    onClick={() => {
+                      setIsProfileModalOpen(true);
+                      setIsCornerMenuOpen(false);
+                    }}
+                    className="flex items-center justify-between pb-3 border-b border-slate-100 cursor-pointer hover:bg-slate-50 p-1.5 -mx-1.5 rounded-xl transition-colors"
+                    title="Click to view full user details"
+                  >
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0 shadow-xs">
                         KC
@@ -1047,7 +1007,7 @@ export const Header: React.FC<HeaderProps> = ({
                           {user.name}
                         </div>
                         <div className="text-[10px] text-slate-400 truncate">
-                          {user.phone || user.id}
+                          {user.phone || user.id} • Tap for Profile
                         </div>
                       </div>
                     </div>
@@ -1277,6 +1237,15 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* USER PROFILE & IDENTITY DETAILS MODAL */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        lang={lang}
+        onSwitchUser={onSwitchApp}
+      />
     </header>
   );
 };
